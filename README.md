@@ -12,7 +12,7 @@ The dataset contains structured information about medications, including:
 - **Side effects**: as a list of medical effects  
 - **Drug interactions**: including involved drugs, associated brands, and severity levels
 
-🗂 **Source**: [Kaggle – India Drugs Dataset](https://www.kaggle.com/datasets/knightbearr/india-drugs-dataset)  
+🗂 **Source**: [Kaggle – India Drugs Dataset](https://www.kaggle.com/datasets/mohneesh7/indian-medicine-data)
 📥 Please download the CSV from Kaggle and place it in the working directory before running the pipeline.
 
 ---
@@ -60,6 +60,14 @@ Queries use `find()`, `$match`, `$group`, `$unwind`, `$sort`, and `$aggregate` o
    ```bash
    mongoimport --db medicines_db --collection medicine_data --file processed_data.json --jsonArray
 4. **Run queries** using MongoDB shell, MongoDB Compass (GUI), or any MongoDB-compatible interface, loading them from queries.txt
+
+---
+
+## 🧰 Tools Used
+
+- **Kaggle** – source of the original dataset 
+- **Python** – for data wrangling and preprocessing
+- **MongoDB** – NoSQL document database for storage and query execution
 
 ---
 
