@@ -67,8 +67,8 @@ Queries use `find()`, `$match`, `$group`, `$unwind`, `$sort`, and `$aggregate` o
 
 This project was developed by:
 
-- **Francesca Pia Panaccione** – ID: 10665920  
-- **Francesco Santambrogio** – ID: 10685653  
+- **Francesca Pia Panaccione** 
+- **Francesco Santambrogio**
 
 🎓 *Politecnico di Milano*  
 Academic Year: **2023–2024**  
