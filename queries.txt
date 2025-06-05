@@ -1,0 +1,514 @@
+Query 1: Filtered medications by salt composition doses
+
+db.getCollection('medicine_data')
+  .find(
+    {
+      product_price: { $exists: true },
+      'salt_composition.dose': {
+        $in: ['30IU', '60IU']
+      }
+    },
+    {
+      product_name: 1,
+      sub_category: 1,
+      medicine_desc: 1,
+      product_price: 1,
+      _id: 0
+    }
+  )
+  .sort({ product_name: 1 });
+
+Query 2: Filtered medications by salt composition and manufacturer exclusion
+
+db.getCollection('medicine_data').find(
+  {
+    'salt_composition.composition': {
+      $all: [
+        'Isoniazid',
+        'Pyrazinamide',
+        'Ethambutol'
+      ]
+    },
+    product_manufactured: {
+      $nin: [
+        'Lupin Ltd',
+        'Macleods Pharmaceuticals Pvt Ltd'
+      ]
+    }
+  },
+  {
+    product_name: 1,
+    medicine_desc: 1,
+    product_manufactured: 1
+  }
+);
+
+Query 3: Filtered medicines by dose and side effects count
+
+db.getCollection('medicine_data').find(
+  {
+    $and: [
+      { 'salt_composition.dose': '500mg/5ml' },
+      { side_effects_type: { $size: 4 } }
+    ]
+  },
+  { product_name: 1, medicine_desc: 1}
+);
+
+Query 4: Medicines with filtered interactions, price, and subcategory
+
+db.getCollection('medicine_data')
+  .find(
+    {
+      $and: [
+        {
+          'drug_interactions.interactions.drug':
+            'Alendronic Acid'
+        },
+        {
+          'drug_interactions.interactions.drug':
+            'Aspirin'
+        },
+        { product_price: { $lt: 100 } },
+        { product_price: { $exists: true } },
+        {
+          sub_category:
+            'Antacids Antiflatulents And Carminatives'
+        }
+      ]
+    },
+    {
+      product_name: 1,
+      drug_interactions: 1,
+      product_price: 1,
+      sub_category: 1
+    }
+  )
+  .sort({ product_price: 1 })
+  .limit(1);
+
+Query 5: Filtered medicines by insulin subcategories and manufacturers and specific product exclusion
+
+db.getCollection('medicine_data').find(
+  {
+    $and: [
+      {
+        $or: [
+          {
+            $and: [
+              {
+                sub_category:
+                  'Human Insulin Basal'
+              },
+              {
+                product_manufactured:
+                  'Sun Pharmaceutical Industries Ltd'
+              }
+            ]
+          },
+          {
+            $and: [
+              {
+                sub_category:
+                  'Human Insulin Rapid'
+              },
+              {
+                product_manufactured:
+                  'Eli Lilly and Company India Pvt Ltd'
+              }
+            ]
+          }
+        ]
+      },
+      {
+        $nor: [
+          {
+            product_name:
+              'Huminsulin R 100IU Cartridge'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    sub_category: 1,
+    product_name: 1,
+    medicine_desc: 1,
+    _id: 0
+  }
+);
+
+Query 6: Medicines with a specific component and a serious drug interaction
+
+db.getCollection('medicine_data')
+  .find(
+    {
+      'drug_interactions.interactions.effect':
+        'SERIOUS',
+      'drug_interactions.interactions.drug':
+        'Bupropion'
+    },
+    {
+      product_name: 1,
+      drug_interactions: 1,
+      _id: 0
+    }
+  )
+  .limit(2);
+
+Query 7: Filtered medicines by interaction type with a certain substance
+
+db.getCollection('medicine_data')
+  .find(
+    {
+      'drug_interactions.interactions': {
+        $elemMatch: {
+          drug: 'Chlorpromazine',
+          effect: 'LIFE-THREATENING'
+        }
+      }
+    },
+    {
+      product_name: 1,
+      drug_interactions: 1,
+      _id: 0
+    }
+  )
+  .limit(2);
+
+Query 8: Medications interacting with two specific substances
+
+db.getCollection('medicine_data')
+  .find(
+    {
+      'drug_interactions.interactions.drug':
+        'Benazepril',
+      'drug_interactions.interactions': {
+        $elemMatch: {
+          brand: 'Enatol',
+          drug: 'Enalapril'
+        }
+      }
+    },
+    {
+      product_name: 1,
+      drug_interactions: 1,
+      _id: 0
+    }
+  )
+  .limit(1);
+
+Query 9: Affordable manufacturers of a type of medication
+
+db.getCollection('medicine_data').aggregate(
+  [
+    {
+      $match: {
+        sub_category:
+          'Ophthalmological Anti Infectives Medicines'
+      }
+    },
+    {
+      $group: {
+        _id: '$product_manufactured',
+        average_product_price: {
+          $avg: '$product_price'
+        }
+      }
+    },
+    {
+      $match: {
+        average_product_price: { $lte: 200 }
+      }
+    },
+    { $limit: 10 }
+  ],
+  { maxTimeMS: 60000, allowDiskUse: true }
+);
+
+Query 10: Medications count by a certain manufacturer
+
+db.getCollection('medicine_data').aggregate(
+  [
+    {
+      $match: {
+        product_manufactured:
+          'Novo Nordisk India Pvt Ltd'
+      }
+    },
+    {
+      $group: {
+        _id: 'Novo Nordisk India Pvt Ltd',
+        num_of_medications: { $sum: 1 }
+      }
+    }
+  ],
+  { maxTimeMS: 60000, allowDiskUse: true }
+);
+
+Query 11: Top 10 manufacturers producing the most expensive medications
+
+db.getCollection('medicine_data').aggregate(
+  [
+    {
+      $group: {
+        _id: '$product_manufactured',
+        most_expensive_product: {
+          $max: '$product_price'
+        }
+      }
+    },
+    { $sort: { most_expensive_product: -1 } },
+    { $limit: 10 }
+  ],
+  { maxTimeMS: 60000, allowDiskUse: true }
+);
+
+Query 12: Less frequent drug interaction brands in a specific sub-category medicine
+
+db.getCollection('medicine_data').aggregate(
+  [
+    {
+      $match: {
+        sub_category: 'Eye Ear Anti Infectives'
+      }
+    },
+    {
+      $unwind: {
+        path: '$drug_interactions.interactions'
+      }
+    },
+    {
+      $unwind: {
+        path: '$drug_interactions.interactions.brand'
+      }
+    },
+    {
+      $group: {
+        _id: '$drug_interactions.interactions.brand',
+        num_of_medicines_per_brand: { $sum: 1 }
+      }
+    },
+    {
+      $match: {
+        num_of_medicines_per_brand: { $lt: 150 }
+      }
+    },
+    { $limit: 10 }
+  ],
+  { maxTimeMS: 60000, allowDiskUse: true }
+);
+
+Query 13: Top 10 manufacturers per category with the highest product counts
+
+db.getCollection('medicine_data').aggregate(
+  [
+    {
+      $group: {
+        _id: {
+          sub_categrory: '$sub_category',
+          product_manufactured:
+            '$product_manufactured'
+        },
+        num_of_products: { $sum: 1 }
+      }
+    },
+    { $sort: { num_of_products: -1 } },
+    { $limit: 10 }
+  ],
+  { maxTimeMS: 60000, allowDiskUse: true }
+);
+
+Query 14: Manufacturers of Vitamin K Antagonists with low average price
+
+db.getCollection('medicine_data').aggregate(
+  [
+    {
+      $group: {
+        _id: {
+          category: '$sub_category',
+          product_manufactured:
+            '$product_manufactured'
+        },
+        avg_price: { $sum: '$product_price' }
+      }
+    },
+    {
+      $match: {
+        '_id.category': 'Vitamin K Antagonists'
+      }
+    },
+    { $match: { avg_price: { $lt: 10 } } },
+    {
+      $project: { '_id.product_manufactured': 1 }
+    }
+  ],
+  { maxTimeMS: 60000, allowDiskUse: true }
+);
+
+Query 15: Drug Interactions with specific components and effect
+
+db.getCollection('medicine_data').aggregate(
+  [
+    {
+      $unwind: {
+        path: '$drug_interactions.interactions'
+      }
+    },
+    {
+      $match: {
+        $or: [
+          {
+            'drug_interactions.interactions.drug':
+              'Benazepril',
+            'drug_interactions.interactions.effect':
+              'SERIOUS'
+          },
+          {
+            'drug_interactions.interactions.drug':
+              'Enalapril',
+            'drug_interactions.interactions.effect':
+              'MODERATE'
+          }
+        ]
+      }
+    },
+    { $project: { drug_interactions: 1 } },
+    { $limit: 10 }
+  ],
+  { maxTimeMS: 60000, allowDiskUse: true }
+);
+
+Query 16: Average price per drug interaction brand
+
+db.getCollection('medicine_data').aggregate(
+  [
+    {
+      $match: { product_price: { $exists: true } }
+    },
+    {
+      $unwind: {
+        path: '$drug_interactions.interactions'
+      }
+    },
+    {
+      $unwind: {
+        path: '$drug_interactions.interactions.brand'
+      }
+    },
+    {
+      $group: {
+        _id: '$drug_interactions.interactions.brand',
+        avg_price_per_brand: {
+          $avg: '$product_price'
+        }
+      }
+    },
+    { $limit: 10 }
+  ],
+  { maxTimeMS: 60000, allowDiskUse: true }
+);
+
+Query 17: Top 10 side effects and their occurrences
+
+db.getCollection('medicine_data').aggregate(
+  [
+    { $unwind: { path: '$side_effects_type' } },
+    {
+      $group: {
+        _id: '$side_effects_type',
+        tot: { $sum: 1 }
+      }
+    },
+    { $sort: { tot: -1 } },
+    { $limit: 10 }
+  ],
+  { maxTimeMS: 60000, allowDiskUse: true }
+);
+
+Query 18: Minimum average price among salt compositions
+
+db.getCollection('medicine_data').aggregate(
+  [
+    {
+      $unwind: {
+        path: '$salt_composition.composition'
+      }
+    },
+    {
+      $group: {
+        _id: '$salt_composition.composition',
+        avg_price_per_composition: {
+          $avg: '$product_price'
+        }
+      }
+    },
+    {
+      $group: {
+        _id: 'minimum',
+        min_avg_price_per_composition: {
+          $min: '$avg_price_per_composition'
+        }
+      }
+    }
+  ],
+  { maxTimeMS: 60000, allowDiskUse: true }
+);
+
+Query 19: Top 10 product-composition-side effect combinations
+
+db.getCollection('medicine_data').aggregate(
+  [
+    {
+      $unwind: {
+        path: '$salt_composition.composition'
+      }
+    },
+    { $unwind: { path: '$side_effects_type' } },
+    {
+      $group: {
+        _id: {
+          composition:
+            '$salt_composition.composition',
+          side_effects_type: '$side_effects_type'
+        },
+        totproduct_with_side_effect: { $sum: 1 }
+      }
+    },
+    { $limit: 10 }
+  ],
+  { maxTimeMS: 60000, allowDiskUse: true }
+);
+
+Query 20: Top 10 drug compositions with most duplicated side effects
+
+db.getCollection('medicine_data').aggregate(
+  [
+    { $unwind: { path: '$side_effects_type' } },
+    {
+      $unwind: {
+        path: '$salt_composition.composition'
+      }
+    },
+    {
+      $group: {
+        _id: {
+          drug_composition:
+            '$salt_composition.composition',
+          duplicate_side_effect:
+            '$side_effects_type'
+        },
+        count_dup: { $sum: 1 }
+      }
+    },
+    {
+      $group: {
+        _id: '$_id.drug_composition',
+        right_sum: { $sum: 1 }
+      }
+    },
+    { $sort: { right_sum: -1 } },
+    { $limit: 10 }
+  ],
+  { maxTimeMS: 60000, allowDiskUse: true }
+);
